@@ -1,0 +1,14 @@
+/* Standalone Marketing Intelligence report: overrides that only apply to the shared single-file HTML. */
+body.marketing-standalone main{margin-left:0;display:block;width:100%}
+.marketing-standalone-bar{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;padding:22px 38px;background:linear-gradient(115deg,#352c87 0%,#5936a9 48%,#116d91 100%);color:#fff;box-shadow:0 6px 22px #33286625}
+.marketing-standalone-bar .eyebrow{color:#f5d898;font-size:10px;font-weight:700;letter-spacing:2px}
+.marketing-standalone-bar strong{display:block;font-family:Manrope,system-ui,sans-serif;font-size:22px;letter-spacing:-.4px;margin-top:6px}
+.marketing-standalone-bar small{display:block;color:#dfe4ff;font-size:11px;margin-top:5px}
+.marketing-standalone-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.marketing-standalone-badge{border:1px solid #b9a5eb;color:#fff0b6;border-radius:20px;padding:7px 13px;font-size:10px;font-weight:700;letter-spacing:.6px}
+.marketing-standalone-bar button{background:#fde68a;border-color:#fce095;color:#3c3267}
+.marketing-standalone-bar button:hover{background:#fff0ae;border-color:#fce095}
+body.marketing-standalone [data-marketing-share]{display:none}
+body.marketing-standalone footer{border-top:1px solid #dfe4f3;color:#77829b;font-size:10px;line-height:1.8;padding:24px 38px 34px}
+@media(max-width:650px){.marketing-standalone-bar{padding:18px 15px}.marketing-standalone-bar strong{font-size:19px}body.marketing-standalone footer{padding:20px 15px 26px}}
+@media print{.marketing-standalone-bar{background:#fff;color:#25345c;border-bottom:3px solid #7450cb;box-shadow:none}.marketing-standalone-bar .eyebrow{color:#6e45ba}.marketing-standalone-bar small{color:#4a5573}.marketing-standalone-badge{color:#4a3a80}.marketing-standalone-actions{display:none}}

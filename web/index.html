@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Getchell’s · Decision Lab</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%236343dc'/%3E%3Ctext x='9' y='29' font-family='sans-serif' font-size='28' font-weight='bold' fill='white'%3EG%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/vivid.css">
+  <link rel="stylesheet" href="/review.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview"><span class="brand-icon">G<span>↗</span></span><span>GETCHELL’S<small>DECISION LAB</small></span></a>
+    <div class="workspace">STRATEGY WORKSPACE</div>
+    <nav aria-label="Main navigation">
+      <a href="#overview" data-page="overview"><span>◫</span> Executive overview</a>
+      <a href="#marketing" data-page="marketing"><span>◈</span> Marketing Intelligence</a>
+      <a href="#segmentation" data-page="segmentation"><span>◎</span> Customer segmentation decision</a>
+      <a href="#financials" data-page="financials"><span>▥</span> Financial health</a>
+      <a href="#insights/brand" data-page="insights"><span>◎</span> Decision Insights</a>
+      <a href="#decisions" data-page="decisions"><span>☷</span> Decision studio</a>
+      <a href="#recommendations" data-page="recommendations"><span>✓</span> Current planning status</a>
+    </nav>
+    <div class="sidebar-note"><span class="live-dot"></span> LOCAL ANALYSIS ENGINE<p>Your data stays in this app.<br>No external AI or paid APIs.</p></div>
+    <div class="team"><span class="avatar">G</span><div>Getchell’s strategy team<small>Latest submitted plan · observed results</small></div></div>
+  </aside>
+  <main>
+    <header class="topbar"><div><span class="crumb">PERFORMANCE REVIEW</span><span class="slash">/</span><span id="breadcrumb">Executive overview</span></div><div class="round-pill"><span class="live-dot"></span> LATEST ACTUALS</div></header>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <div id="content"><p class="loading">Loading your current decision workspace…</p></div>
+    <footer>GETCHELL’S DECISION LAB <span>Observed actuals · conditional scenarios are not validated forecasts.</span></footer>
+  </main>
+</body>
+</html>
