@@ -51,6 +51,7 @@ def build_review(data,root):
     ratios=[]
     for rnd in (str(previous),str(current)):
         s=data['rounds'][rnd];b=s['balance'];i=s['income']
+        if not i or not b:continue
         invested=b['Short Term Loans']+b['Long Term Debt']+b['Shareholder’s Equity']-b['Cash']
         roic=s['ratios']['ebit']/invested;wacc=s['scorecard']['Weighted Average Cost of Capital (WACC)']/100
         ratios.append(dict(round=int(rnd),ebit=s['ratios']['ebit'],invested_capital_proxy=invested,
@@ -76,8 +77,8 @@ def build_review(data,root):
                                         'Store debt/cash financing split and automatic borrowing mechanics'],
                                horizon_conflict='MV pp3/14 say stronger/stable strategy earns shorter forecast T, while p8 describes a one-dimensional weak strategy as low T. Do not equate longer T with greater durability or invent a monotonic mapping.',
                                sources=['MV 2–6, 8, 14']),
-                budget=dict(revenue_arm=.14*data['rounds'][str(current)]['income']['Net Revenue'],
-                             exact_next_budget=None,previous_budget=71_422_000 if current==2 else None,inflation_allowance=None,
+                budget=dict(revenue_arm=.14*(data.get('marketing',{}).get('company_revenue') or data['rounds'][str(current)]['income']['Net Revenue']),
+                             exact_next_budget=None,previous_budget={2:71_422_000,3:74_631_166}.get(current),inflation_allowance=None,
                             submitted_spend=sum(data['team']['decisions'][k] for k in ('online','service','experience','vendor','analytics')),
                             rule='max(14% of previous revenue, previous budget with inflation allowance)',
                              boundary='The revenue arm is computable. The next-period ceiling remains unconfirmed; the inflation allowance is missing. Submitted spend alone is not proof of budget approval. Demo slide screenshots are not this team’s budget.',source='Intro 16'),

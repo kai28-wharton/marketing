@@ -16,11 +16,11 @@ const delta=(v,format=num)=>`<span class="${v>0?'positive':v<0?'negative':''}">$
 const colors=['#7c3aed','#2563eb','#0891b2','#d97706','#db2777','#159c6c'];
 const qNames=['BRAND','EXPERIENCE','FRICTIONLESS','LOW PRICE'];
 const spendingKeys=['online','service','experience','vendor','analytics'];
-const pages={overview:'Executive overview',marketing:'Marketing Intelligence',segmentation:'Customer segmentation decision',financials:'Financial health',insights:'Decision Insights',decisions:'Decision studio',recommendations:'Round 1 decision recommendation'};
+const pages={overview:'Executive overview',stp:'STP decision: how we chose target segments',marketing:'Marketing Intelligence',segmentation:'Customer segmentation analysis',marketvalue:'Market value analysis',wacc:'WACC impact analysis',financials:'Financial health',insights:'Decision Insights',decisions:'Decision studio',recommendations:'Round 1 decision recommendation'};
 let insightTab='brand',insightLens='convenience',insightSegment='SEGMENT 6';
 let focusInsightTab=false;
 function activateInsightTab(tab){focusInsightTab=true;const hash='#insights/'+tab;if(location.hash===hash){insightTab=tab;render();}else location.hash=hash;}
-function readRoute(){const [name,tab]=location.hash.slice(1).split('/');page=pages[name]?name:'overview';if(page==='insights')insightTab=['brand','finance','segments'].includes(tab)?tab:'brand';}
+function readRoute(){const [name,tab]=location.hash.slice(1).split('/');page=pages[name]?name:'overview';if(page==='stp'&&!data?.history_analysis)page='overview';if(page==='insights')insightTab=['brand','finance','segments'].includes(tab)?tab:'brand';}
 let data,plan,result,probes,economics={},optimizerOutput='',page='overview',segment='SEGMENT 6',lens='revenue',probeDirection='increase';
 let impactSeq=0,impactBusy=false,impactStale=false,optimizerSeq=0;
 const offline=!!document.getElementById('review-data');
@@ -345,20 +345,20 @@ document.addEventListener('input',e=>{
  const key=e.target.dataset.factor||e.target.dataset.economic;if(!key)return;
  ++optimizerSeq;optimizerOutput='';if($('#optimizer-output'))$('#optimizer-output').textContent='Studio inputs changed; recalculate before optimization.';
  ++impactSeq;impactBusy=false;impactStale=true;
- if($('#apply-impact'))$('#apply-impact').disabled=false;
+  if($('#apply-impact'))$('#apply-impact').disabled=data.availability?.prediction_available===false;
  const value=e.target.valueAsNumber,isEconomic=!!e.target.dataset.economic;
  const f=isEconomic?data.economic_schema[key]:data.factors.find(f=>f.key===key);
  const blank=isEconomic&&e.target.value==='';
  const valid=blank||(Number.isFinite(value)&&value>=f.min&&value<=f.max);
   e.target.setAttribute('aria-invalid',String(!valid));if(valid){if(isEconomic)economics[key]=blank?null:value;else plan[key]=value;}
   updateStudioDraft();
- $('#impact-status').textContent=valid?'STALE — apply valid inputs to recalculate.':'INVALID — correct the highlighted input before recalculating.';
+  $('#impact-status').textContent=data.availability?.prediction_available===false?'Prediction unavailable: current financial exports are missing.':valid?'STALE — apply valid inputs to recalculate.':'INVALID — correct the highlighted input before recalculating.';
  $('#impact-status').classList.add('stale');
 });
 document.addEventListener('submit',async e=>{
  if(e.target.id==='optimizer-form'){e.preventDefault();await runOptimization(e.target);return;}
  if(e.target.id!=='impact-form')return;
- e.preventDefault();if(offline)return;
+  e.preventDefault();if(offline||data.availability?.prediction_available===false)return;
  const form=e.target;
  if(!form.checkValidity()){form.reportValidity();return;}
  if(form.querySelector('[aria-invalid=true]'))return;
@@ -394,6 +394,6 @@ async function runOptimization(form){
  }catch(error){if(seq===optimizerSeq&&page==='decisions')$('#optimizer-output').textContent=error.message;}
  finally{button.disabled=false;}
 }
-window.addEventListener('hashchange',()=>{if(offline){if(!data?.segment_decision||!['#marketing','#segmentation'].includes(location.hash))return;page=location.hash.slice(1);}else readRoute();render();});
-async function init(){try{if(offline){data=JSON.parse($('#review-data').textContent);page='marketing';}else{const response=await fetch('/api/data');if(!response.ok)throw new Error('Data import failed');data=await response.json();readRoute();}plan={...data.team.decisions};economics={...data.economic_defaults};result=data.sensitivity;probes=data.probes;render();if(offline){$('#report-print')?.addEventListener('click',()=>window.print());$('#report-generated').textContent='Generated '+new Date(data.generated_at).toLocaleString()+` · export ${data.current_round??1} snapshot`;}}catch(error){$('#content').innerHTML=`<div class="error-box"><h1>Could not load the current review</h1><p>${esc(error.message)}</p><p>Check the latest materials/round* exports and decision_making/round_* submitted workbooks.</p></div>`;}}
+window.addEventListener('hashchange',()=>{if(offline){if(data?.report_page==='combined')return;if(!data?.segment_decision||!['#marketing','#segmentation',...(data.history_analysis?['#overview','#stp','#marketvalue']:[]),...(data.wacc_analysis?['#wacc']:[])].includes(location.hash))return;page=location.hash.slice(1);}else readRoute();render();});
+async function init(){try{if(offline){data=JSON.parse($('#review-data').textContent);page=data.report_page==='combined'&&data.final_review?'combined':data.report_page==='wacc'&&data.wacc_analysis?'wacc':data.report_page==='marketvalue'&&data.history_analysis?'marketvalue':data.report_page==='segmentation'&&data.segment_decision?'segmentation':'marketing';if(data.report_page!=='combined'&&data.segment_decision&&['#marketing','#segmentation',...(data.history_analysis?['#overview','#stp','#marketvalue']:[]),...(data.wacc_analysis?['#wacc']:[])].includes(location.hash))page=location.hash.slice(1);}else{const response=await fetch('/api/data');if(!response.ok)throw new Error('Data import failed');data=await response.json();readRoute();}if(typeof restoreSegmentationDebate==='function')restoreSegmentationDebate();plan={...data.team.decisions};economics={...data.economic_defaults};result=data.sensitivity;probes=data.probes;render();if(offline){$('#report-print')?.addEventListener('click',()=>window.print());$('#report-generated').textContent='Generated '+new Date(data.generated_at).toLocaleString()+` · export ${data.current_round??1} snapshot`;}}catch(error){$('#content').innerHTML=`<div class="error-box"><h1>Could not load the current review</h1><p>${esc(error.message)}</p><p>Check the latest materials/round* exports and decision_making/round_* submitted workbooks.</p></div>`;}}
 if(!window.__deferReviewInit)init();

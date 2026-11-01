@@ -66,7 +66,7 @@ def load_data():
         financial[key] = [{'name': r['Name'], 'display': r['Round-0'], 'value': number(r['Round-0'])}
                           for r in read_csv(financial_dir / f'{name}-round0.csv')]
     industry = {r['Decision']: {k.lower(): number(r[k]) for k in ['Average', 'Minimum', 'Maximum']}
-                for r in read_csv(ROOT / 'decision_making' / 'round_1' / 'industryDecisions-round0.csv')}
+                for r in read_csv(ROOT / 'decision_making' / 'round_0' / 'industryDecisions-round0.csv')}
     factors = [dict(zip(['key', 'label', 'baseline', 'min', 'max', 'unit', 'group'], f),
                     industry=industry[f[1]], priced=f[0] in SPEND) for f in FACTORS]
     kahn = []
@@ -83,7 +83,7 @@ def load_data():
     data = dict(**financial, factors=factors, kahn=kahn, documents=docs,
                 baseline=BASE, budget=BUDGET, assumptions=DEFAULT_ASSUMPTIONS,
                 sources=['materials/round0/finance/balanceSheet-round0.csv', 'materials/round0/finance/incomeStatement-round0.csv',
-                          'decision_making/round_1/industryDecisions-round0.csv', 'materials/round0/finance/scorecard-round0.csv',
+                          'decision_making/round_0/industryDecisions-round0.csv', 'materials/round0/finance/scorecard-round0.csv',
                          'materials/round0/marketing/kahn-round0.csv',
                          'materials/company.md', 'materials/competitors.md'])
     from marketing import load_marketing
@@ -266,15 +266,19 @@ class Handler(BaseHTTPRequestHandler):
                 from round_review import dataset
                 from review_model import evaluate as current_evaluate, factor_probes
                 data = dataset()
-                data['sensitivity'] = current_evaluate(data['team']['decisions'], data)
-                data['probes'] = factor_probes(data)
+                ready=data.get('availability',{}).get('prediction_available',True)
+                data['sensitivity'] = current_evaluate(data['team']['decisions'], data) if ready else None
+                data['probes'] = factor_probes(data) if ready else []
                 return self.respond(200, data)
-            if path == '/marketing-report':
+            if path in ('/marketing-report','/customer-segmentation-report','/customer-segmentation-analysis','/market-value-report','/wacc-report','/final-report'):
                 from marketing_report import build_current_report
-                content = build_current_report().encode('utf-8')
+                segmentation=path in ('/customer-segmentation-report','/customer-segmentation-analysis')
+                page='combined' if path=='/final-report' else 'wacc' if path=='/wacc-report' else 'marketvalue' if path=='/market-value-report' else 'segmentation' if segmentation else 'marketing'
+                content = build_current_report(page=page).encode('utf-8')
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
-                self.send_header('Content-Disposition', 'attachment; filename="getchells-marketing-intelligence.html"')
+                filename='getchells-final-report.html' if path=='/final-report' else 'getchells-wacc-impact-analysis.html' if path=='/wacc-report' else 'getchells-market-value-analysis.html' if path=='/market-value-report' else 'getchells-customer-segmentation-analysis.html' if segmentation else 'getchells-marketing-intelligence.html'
+                self.send_header('Content-Disposition', f'attachment; filename="{filename}"')
                 self.send_header('Content-Length', str(len(content)))
                 self.end_headers()
                 return self.wfile.write(content)
@@ -287,7 +291,7 @@ class Handler(BaseHTTPRequestHandler):
             name, mime = files[path]
             content = (ROOT / 'web' / name).read_bytes()
             if name=='review.js':
-                content = b'window.__deferReviewInit=true;\n'+content+b'\n'+(ROOT/'web/current.js').read_bytes()+b'\ninit();'
+                content = b'window.__deferReviewInit=true;\n'+content+b'\n'+(ROOT/'web/current.js').read_bytes()+b'\n'+(ROOT/'web/segmentation_lab.js').read_bytes()+b'\n'+(ROOT/'web/history_analysis.js').read_bytes()+b'\n'+(ROOT/'web/final_analysis.js').read_bytes()+b'\ninit();'
             self.send_response(200)
             self.send_header('Content-Type', mime + '; charset=utf-8')
             self.send_header('Content-Length', str(len(content)))

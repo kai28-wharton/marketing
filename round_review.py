@@ -14,11 +14,12 @@ QUADRANTS = ('BRAND', 'EXPERIENCE', 'FRICTIONLESS', 'LOW PRICE')
 ATTRIBUTES = ('LOW PRICE','BREADTH','DEPTH','BRAND','ONLINE','RETAIL','CUSTOMER SERVICE','SHOPPING EXPERIENCE')
 
 
-def statements(root, round_id):
+def statements(root, round_id, export_round=None):
     from app import read_csv, number
     out = {}
     for key, name in [('income','incomeStatement'),('balance','balanceSheet'),('scorecard','scorecard')]:
-        path = root / 'materials' / f'round{round_id}' / 'finance' / f'{name}-round{round_id}.csv'
+        source=round_id if export_round is None else export_round
+        path = root / 'materials' / f'round{source}' / 'finance' / f'{name}-round{source}.csv'
         out[key] = {r['Name']: number(r[f'Round-{round_id}']) for r in read_csv(path)}
     return out
 
@@ -116,7 +117,7 @@ def _build_dataset(root):
     scores={r:{x['quadrant']:x['value'] for x in history if x['round']==r and x['company']==COMPANY} for r in (0,1)}
     factors=copy.deepcopy(base_data['factors'])
     industry={r['Decision']:{k.lower():app.number(r[k]) for k in ('Average','Minimum','Maximum')}
-              for r in app.read_csv(root/'decision_making/round_2/industryDecisions-round1.csv') if int(r['Round'])==1}
+              for r in app.read_csv(root/'decision_making/round_2/industryDecisions-round2.csv') if int(r['Round'])==1}
     definition_path=root/'materials/decision_making_factors.md'
     definitions=definition_path.read_text().strip() if definition_path.exists() else ''
     for f in factors:
@@ -141,7 +142,7 @@ def _build_dataset(root):
         accounting.append(dict(key=key,decision=decision,expense=actual,ratio=actual/decision if decision else None,
                                difference=actual-decision))
     sources=[str(p.relative_to(root)) for p in sorted((root/'materials').glob('round*/*/*.csv'))]
-    sources += [team['source'],'decision_making/round_2/industryDecisions-round1.csv','materials/decision_making_factors.md']
+    sources += [team['source'],'decision_making/round_2/industryDecisions-round2.csv','materials/decision_making_factors.md']
     from decision_economics import SCHEMA, scenario
     issues=['Private Brand is mix per MarketValue_Slides p12, superseding the duplicated Markdown definition; numeric response/exposures are still unknown.',
             'The national-brand-quality line is unlabeled in Markdown but confirmed by Intro p14.',
@@ -182,7 +183,7 @@ def _build_dataset(root):
     from brand_holistic import build_holistic
     result['insights']['brand']['parameter_impact']['holistic']=build_holistic(result,root)
     result['sources']=sorted(set(result['sources']+[r['file'] for r in result['insights']['brand']['parameter_impact']['holistic']['source_audit']['materials']]+
-                                  ['decision_making/round_1/industryDecisions-round0.csv']))
+                                  ['decision_making/round_0/industryDecisions-round0.csv']))
     return result
 
 

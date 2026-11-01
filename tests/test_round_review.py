@@ -64,7 +64,7 @@ class RoundReviewTests(unittest.TestCase):
         m=self.data['marketing']
         self.assertEqual(len(m['segments']),6)
         self.assertEqual(len(m['companies']),7)
-        self.assertEqual(len(m['raw_tables']),12)
+        self.assertEqual(len(m['raw_tables']),13)  # Newly supplied unitMarketShare export.
         self.assertEqual(m['segment_revenue_difference'],-1)
         self.assertFalse(m['segment_clv_available'])
         self.assertTrue(all(s['clv'] is None for s in m['segments']))

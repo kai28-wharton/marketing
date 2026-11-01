@@ -3,6 +3,7 @@ import math
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -107,7 +108,7 @@ class APITests(unittest.TestCase):
             return response.status, response.read()
 
     def test_static_and_data(self):
-        for path in ['/', '/app.js', '/style.css', '/api/data', '/vivid.css', '/review.css', '/marketing-report']:
+        for path in ['/', '/app.js', '/style.css', '/api/data', '/vivid.css', '/review.css', '/marketing-report', '/customer-segmentation-report', '/final-report']:
             self.assertEqual(self.request(path)[0], 200)
         with self.assertRaises(HTTPError) as err:
             self.request('/materials/company.md')
@@ -116,13 +117,33 @@ class APITests(unittest.TestCase):
 
     def test_evaluate_and_persistence(self):
         from round_review import dataset
-        plan=dataset()['team']['decisions']
-        code, body = self.request('/api/impact', {'decisions':plan})
+        historical=dataset(2)
+        plan=historical['team']['decisions']
+        with patch('round_review.dataset',return_value=historical):
+            code, body = self.request('/api/impact', {'decisions':plan})
         result=json.loads(body)
         self.assertEqual(code,200)
         self.assertEqual(result['result']['revenue'],561_280_114)
         self.assertEqual(len(result['probes']),16)
-        self.assertEqual(dataset()['team']['decisions'],plan)
+        self.assertEqual(dataset(2)['team']['decisions'],plan)
+
+    def test_round4_api_exposes_partial_data_and_blocks_financial_predictions(self):
+        from round_review import dataset
+        patcher=patch('round_review.dataset',return_value=dataset(3))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        code,body=self.request('/api/data')
+        data=json.loads(body)
+        self.assertEqual((data['current_round'],data['planning_round']),(3,4))
+        self.assertFalse(data['availability']['finance_current'])
+        self.assertIsNone(data['sensitivity'])
+        self.assertEqual(data['probes'],[])
+        for endpoint in ('/api/impact','/api/optimize'):
+            with self.assertRaises(HTTPError) as err:
+                self.request(endpoint,{'decisions':data['team']['decisions']})
+            self.assertEqual(err.exception.code,400)
+            self.assertIn('financial exports are missing',json.load(err.exception)['error'])
+            err.exception.close()
 
     def test_chat_endpoint(self):
         with self.assertRaises(HTTPError) as err:
@@ -142,6 +163,10 @@ class APITests(unittest.TestCase):
         self.assertTrue(body.startswith(b'<!doctype html>'))
         self.assertIn(b'review-data',body)
         self.assertIn(b'481926248',body)
+        code,body=self.request('/final-report')
+        self.assertEqual(code,200)
+        self.assertIn(b'report-nav',body)
+        self.assertEqual(body.count(b'<section class="report-section"'),6)
 
     def test_assortment_endpoints(self):
         for path in ('/api/assortment/team','/api/scenarios','/assortment.js','/whatif.js','/assortment-offline','/team-report'):
@@ -168,7 +193,11 @@ class APITests(unittest.TestCase):
 
     def test_current_optimizer_uses_definition_aware_model_and_explicit_constraints(self):
         from round_review import dataset
-        plan=dataset()['team']['decisions']
+        historical=dataset(2)
+        patcher=patch('round_review.dataset',return_value=historical)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        plan=historical['team']['decisions']
         payload=dict(decisions=plan,ranges={'online':[8_000_000,9_000_000]},step=500_000,
                      budget=74_000_000,max_cash_use=1_000_000)
         code,body=self.request('/api/optimize',payload)

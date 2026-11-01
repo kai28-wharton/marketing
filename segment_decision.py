@@ -32,6 +32,13 @@ def build_segment_decision(data):
             risk='Retail 0.30 leads; Brand only 0.10 and Low Price 0.20 make this a value/access-led extension, not a strong Brand fit. BESTCO is stronger on Frictionless and Low Price.',
             change='Promote ahead of 5 if an existing-store/value test wins on incremental contribution and retention without a price war, major store capex or sacrificing the Brand + Experience core.'),
     }
+    by_source={s['id']:s for s in segments}
+    own=data['rounds'][str(current)]['scores']
+    z={r['quadrant']:r['value'] for r in data['kahn'] if r['round']==current and r['company']=='ZEPHARA'}
+    cases['SEGMENT 3']['risk']=(f"Market population growth is {by_source['SEGMENT 3']['size_growth']:.1%}; "
+        f"ZEPHARA Experience {z['EXPERIENCE']:.1f} / Brand {z['BRAND']:.1f} versus our {own['EXPERIENCE']:.1f} / {own['BRAND']:.1f}. Clearest fit does not mean safe share or profit.")
+    cases['SEGMENT 4']['case']=(f"Retail and Online lead its raw needs. Population growth is {by_source['SEGMENT 4']['size_growth']:.1%}; "
+        f"company revenue growth is {by_source['SEGMENT 4']['growth']:.1%}. Consider bounded existing-capability tests, not a growth assumption.")
     rows=[]
     for s in segments:
         rows.append(dict(s,**cases[s['id']],size_share=s['size']/total_size,
@@ -63,7 +70,7 @@ def build_segment_decision(data):
                 pairwise=[
                     dict(pair='5 versus 6',case='5 wins on Experience and Brand intensity; 6 wins on size, aggregate CLV, population growth and observed company-revenue growth.',decision='Choose 5 for coherence with the current proposition. Choose 6 instead only with evidence that value/access can be delivered more profitably through existing capacity. Both face rival and parity risks.'),
                     dict(pair='2 versus 6',case='2 has slightly more consumers, more aggregate CLV and more current revenue; 6 has stronger Experience intensity and faster population/revenue growth.',decision='2 leads defense; 6 leads an Experience-led growth comparison. Breadth availability supports 2, but does not justify indiscriminate inventory expansion.'),
-                    dict(pair='4 versus 5',case='4 has faster population and company-revenue growth and stronger Retail/Online weights; 5 has more consumers, aggregate CLV, revenue and substantially stronger Experience intensity.',decision='5 is the scale/Experience extension. 4 earns a small mixed-channel test, not automatic promotion because of growth.'),
+                    dict(pair='4 versus 5',case=f"4 population/revenue growth: {by_id['SEGMENT 4']['size_growth']:.1%} / {by_id['SEGMENT 4']['growth']:.1%}; 5: {by_id['SEGMENT 5']['size_growth']:.1%} / {by_id['SEGMENT 5']['growth']:.1%}. 4 has stronger Retail/Online weights; 5 has more consumers, aggregate CLV and stronger Experience intensity.",decision='5 is the scale/Experience extension. 4 earns a small mixed-channel test, not automatic promotion because of growth.'),
                     dict(pair='4 versus 6',case='6 has more consumers, CLV, revenue, stronger Experience intensity and faster population and company-revenue growth. 4 has slightly higher Brand and much higher Online intensity.',decision='6 has the stronger scale/Experience case. 4 can still win a specific low-cost channel test; no inference of profit dominance is justified.')],
                 sources=data['strategy']['sources'],
                 boundary='Observed export data and slide-grounded judgments, not a forecast. Preference intensities are copied from the CSV, not estimated elasticities or percentages. No segment profit, acquisition cost, retention, unique-buyer count, spending response or numeric rank penalty is supplied. CSV FAIR VALUE governs parity; no slide percentage replaces it.')

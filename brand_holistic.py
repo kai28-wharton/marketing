@@ -85,8 +85,9 @@ def build_holistic(data,root):
                 f"revenue intensity {percent(i0[line]/i0['Net Revenue'])} → {percent(i1[line]/i1['Net Revenue'])}.")
     industry={}
     for rnd in (0,1):
+        export=0 if rnd==0 else 2
         industry[rnd]={r['Decision']:{k.lower():number(r[k]) for k in ('Average','Minimum','Maximum')}
-                       for r in read_csv(root/'decision_making'/f'round_{rnd+1}'/f'industryDecisions-round{rnd}.csv') if int(r['Round'])==rnd}
+                       for r in read_csv(root/'decision_making'/f'round_{export}'/f'industryDecisions-round{export}.csv') if int(r['Round'])==rnd}
     access=next(t['rows'] for t in data['marketing']['raw_tables'] if 'revenueByAccessPoint' in t['file'])
     own_access=next(r for r in access if r['COMPANY']==COMPANY)
     channels=[dict(channel=c,prior=float(own_access['Round-0 '+c]),current=float(own_access['Round-1 '+c]),
@@ -363,6 +364,6 @@ def write_report(data,path):
             f"Reviewed {audit['material_files']} supplied CSV/Markdown/PDF files under materials, plus the workbook and both industry-decision files. Checked {audit['overlap_cells']} overlapping R0/R1 cells and {audit['auxiliary_cells']} auxiliary Kahn cells; conflicts: {len(audit['conflicts'])}. This overlap audit does not erase the separate documented-versus-exported FAIR VALUE conflict.",audit['boundary'],'']
     lines+=['- `'+r['file']+'` — '+r['role'] for r in audit['materials']]
     lines+=['- `'+data['team']['source']+'` — all sixteen explicit Column B cells',
-             '- `decision_making/round_1/industryDecisions-round0.csv` — historical export-0 industry context',
-             '- `decision_making/round_2/industryDecisions-round1.csv` — export-1 and re-exported historical aggregate context','']
+             '- `decision_making/round_0/industryDecisions-round0.csv` — historical export-0 industry context',
+             '- `decision_making/round_2/industryDecisions-round2.csv` — re-exported historical aggregate context','']
     Path(path).write_text('\n'.join(lines),encoding='utf-8')

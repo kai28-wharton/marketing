@@ -31,6 +31,8 @@ def _adapter(data):
 
 
 def evaluate(plan, data, assumptions=None, economics=None):
+    if not data.get('availability',{}).get('prediction_available',True):
+        raise ValueError(f"Round {data['current_round']} financial exports are missing. Predictions and optimization require the current income statement, balance sheet and scorecard.")
     from app import validate, SPEND
     plan,a=validate(plan,assumptions)
     if not plan['coverage'].is_integer():

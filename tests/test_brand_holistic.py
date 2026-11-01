@@ -29,7 +29,7 @@ class HolisticBrandTests(unittest.TestCase):
 
     def test_overlap_and_auxiliary_checks_do_not_multiply_samples(self):
         audit=self.h['source_audit']
-        self.assertEqual(audit['overlap_cells'],376)
+        self.assertEqual(audit['overlap_cells'],390)  # Includes 14 newly supplied unit-share rows.
         self.assertEqual(audit['auxiliary_cells'],96)
         self.assertFalse(audit['conflicts'])
         self.assertEqual(self.data['insights']['brand']['parameter_impact']['validation_rows'],14)

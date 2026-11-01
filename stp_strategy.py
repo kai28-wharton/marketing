@@ -14,7 +14,7 @@ def build_stp(data):
     total_clv=sum(s['clv'] for s in rows) if all(s['clv'] is not None for s in rows) else None
     roles={
         'SEGMENT 1':('Serve; no acquisition priority','Frictionless / Low Price profile; shopping-experience intensity is 0.00 and Brand 0.05. Large population alone does not justify stretching the new proposition.'),
-        'SEGMENT 2':('Defend existing revenue and value','Largest current revenue and aggregate CLV pool, but breadth/retail/value needs dominate. Preserve a credible offer; do not confuse size with fit for Brand-led acquisition.'),
+        'SEGMENT 2':('Defend existing revenue and value','An important existing revenue and aggregate CLV pool, but breadth/retail/value needs dominate. Preserve a credible offer; do not confuse size with fit for Brand-led acquisition.'),
         'SEGMENT 3':('Primary Brand + Experience target','Intro p8 explicitly identifies Brand / Experience. Highest raw Brand intensity (0.30) and strong shopping experience (0.40) best match the chosen two-quadrant proposition; smaller population and aggregate CLV limit scale.'),
         'SEGMENT 4':('Selective adjacent reserve','Mixed preferences, moderate Brand (0.12) / shopping experience (0.20), and strong retail/online needs. Faster population growth is attractive, but does not make this the core Brand + Experience target.'),
         'SEGMENT 5':('Secondary Experience target; expansion gated','Highest shopping-experience intensity (0.43), larger population and aggregate CLV than Segment 3. Its Frictionless / Experience slide profile makes convenience parity a condition for a broad acquisition push; protect existing customers now.'),
@@ -34,25 +34,25 @@ def build_stp(data):
                 reserve_segment='SEGMENT 4',defend_segments=['SEGMENT 2','SEGMENT 6'],
                 experience_goal='Rank #1 among actual retailers, not merely our strongest quadrant',
                 experience_min=exp['own'],experience_peer=exp['leader'],experience_peer_reference=exp['leader_value'],
-                brand_goal='Narrow the gap to the Brand leader; parity alone is not the competitive objective',
+                brand_goal='Defend competitive Brand leadership' if brand['rank']==1 else 'Narrow the gap to the Brand leader; parity alone is not the competitive objective',
                 brand_reference_floor=brand['active_floor'],brand_leader=brand['leader'],brand_leader_reference=brand['leader_value'],
                 low_price_reference_floor=low['active_floor'],frictionless_min=friction['active_floor'],
                 frictionless_parity_required=True,fair_value_basis='Reported CSV FAIR VALUE; refresh after each resolved round',
                 positioning='A distinctive branded assortment with the best shopping experience, supported by fair prices and dependable convenience—not price leadership.',
-                timing='New team strategy for current planning; historical submitted inputs and observed outcomes are unchanged.')
+                timing='Retained team strategy reviewed against current outcomes; historical submitted inputs remain unchanged.')
     objectives=[
         dict(quadrant='EXPERIENCE',role='Lead',own=exp['own'],rank=exp['rank'],leader=exp['leader'],leader_value=exp['leader_value'],
              fair_value=exp['active_floor'],fair_gap=exp['active_gap'],leader_gap=exp['leader_value']-exp['own'],
-             target='Rank #1 against actual competitors. Matching the current 6.50 reference would tie; exceeding it gives sole leadership only if peers do not move.'),
+              target=f"Rank #1 against actual competitors. Current leader reference: {exp['leader_value']:.2f}; sole leadership requires exceeding peers' future scores."),
         dict(quadrant='BRAND',role='Very competitive',own=brand['own'],rank=brand['rank'],leader=brand['leader'],leader_value=brand['leader_value'],
              fair_value=brand['active_floor'],fair_gap=brand['active_gap'],leader_gap=brand['leader_value']-brand['own'],
-             target='Improve the Brand score and narrow the leader gap while protecting Experience. No arbitrary percentage target or guaranteed response is invented.'),
+              target='Defend the current #1 Brand standing (ties count as #1) while restoring Experience; do not assume leadership will persist.' if brand['rank']==1 else 'Improve the Brand score and narrow the leader gap while protecting Experience. No arbitrary percentage target or guaranteed response is invented.'),
         dict(quadrant='LOW PRICE',role='Maintain fair value',own=low['own'],rank=low['rank'],leader=low['leader'],leader_value=low['leader_value'],
              fair_value=low['active_floor'],fair_gap=low['active_gap'],leader_gap=low['leader_value']-low['own'],
              target='Preserve the moving CSV floor; being last in rank does not require a price war when parity is already met. Monitor customer value and contribution.'),
         dict(quadrant='FRICTIONLESS',role='Restore and maintain fair value',own=friction['own'],rank=friction['rank'],leader=friction['leader'],leader_value=friction['leader_value'],
              fair_value=friction['active_floor'],fair_gap=friction['active_gap'],leader_gap=friction['leader_value']-friction['own'],
-             target='Close the current 1.90-point parity shortfall. The prior decision to defer full parity is superseded; this is a required safeguard under the new team strategy.'),
+              target=f"Close the current {max(0,-friction['active_gap']):.2f}-point parity shortfall and maintain the moving CSV floor. This remains a required safeguard."),
     ]
     exp_own=exp['own'];exp_rank=exp['rank'];exp_leader=exp['leader'];exp_leader_value=exp['leader_value']
     brand_own=brand['own'];brand_rank=brand['rank'];brand_leader=brand['leader'];brand_leader_value=brand['leader_value']
@@ -67,7 +67,7 @@ def build_stp(data):
                     'SEGMENT 3':f"{exp_leader} is the Experience leader ({exp_leader_value:.1f}) and near the top on Brand ({z.get('BRAND'):.1f}): a contested fit core, so test before scaling.",
                     'SEGMENT 4':'AIM, ZEPHARA and KTBENNEY already serve a mixed-needs segment; keep this a selective reserve, not a third equal priority.',
                     'SEGMENT 5':'Same rival as Segment 3; the larger Experience pool is attractive but convenience-gated, so expansion stays conditional.',
-                    'SEGMENT 6':f"BESTCO owns this value segment (Low Price {bc.get('LOW PRICE'):.1f}, Frictionless {bc.get('FRICTIONLESS'):.1f}, Experience only {bc.get('EXPERIENCE'):.1f}): defend it, do not chase it with Brand."}
+                    'SEGMENT 6':f"BESTCO is a named value/access rival (Low Price {bc.get('LOW PRICE'):.1f}, Frictionless {bc.get('FRICTIONLESS'):.1f}, Experience {bc.get('EXPERIENCE'):.1f}): defend existing equity; no measured segment ownership is supplied."}
     byid={s['id']:s for s in segments}
     def tier_stats(ids):
         sel=[byid[i] for i in ids]
@@ -82,10 +82,10 @@ def build_stp(data):
                  why='Segment 3 is the only true Brand + Experience fit (Brand 0.30, Shopping Experience 0.40); Segment 5 has the strongest Experience pull (0.43) with a larger pool and higher aggregate CLV. Together they are the credibility anchor and the scale extension. Segment 5 acquisition is gated on restoring Frictionless parity.',
                  **tier_stats(['SEGMENT 3','SEGMENT 5'])),
             dict(id='defend',label='DEFEND · existing value & breadth equity',segments=['SEGMENT 2','SEGMENT 6'],
-                 why='The two largest aggregate-CLV and revenue pools, but their top needs are breadth/retail/value with Brand intensity only 0.10. Hold them at fair value rather than spending the Brand lever on customers who do not value it.',
+                 why='Important existing equity pools with breadth/retail/value needs and Brand intensity only 0.10. Review current size/CLV rankings rather than assuming these are always the two largest. Maintain credible value and access.',
                  **tier_stats(['SEGMENT 2','SEGMENT 6'])),
             dict(id='reserve',label='RESERVE · selective tests',segments=['SEGMENT 4'],
-                 why='Mixed retail/online/low-price needs with moderate Experience and 5.0% population growth (below Segments 1 and 6); test opportunistically with existing capabilities, not as a third equal priority.',
+                 why=f"Mixed retail/online/low-price needs with moderate Experience; current population growth {byid['SEGMENT 4']['size_growth']:.1%}. Test opportunistically with existing capabilities, not as a third equal priority.",
                  **tier_stats(['SEGMENT 4'])),
             dict(id='serve',label='SERVE · no acquisition priority',segments=['SEGMENT 1'],
                  why='Shopping-experience intensity is 0.00 and Brand 0.05; a Brand + Experience proposition cannot satisfy these needs.',
@@ -93,10 +93,10 @@ def build_stp(data):
         ],
         boundary='Tiers are a fit-and-defense ordering, not a profit ranking. Market consumers count the whole segment, aggregate CLV is our customer equity attributed by segment, and revenue mix is not penetration. Segment 5 expansion still requires Frictionless parity plus contribution and retention evidence.')
     verdict=dict(
-        decision='Experience + Brand is the best available two-quadrant strategy under the MarketValue_Slides definitions.',
+                 decision='Experience + Brand is the best available two-quadrant strategy under the MarketValue_Slides definitions.',
         summary=('MV p8 documents that moving on two quadrants while holding parity on the other two is the value sweet spot, and that one- or four-quadrant moves are inferior. '
                  'Experience + Brand is the only pairing whose two needs match a single segment’s top-two raw intensities (Segment 3: Shopping Experience 0.40, Brand 0.30), and its levers are the mostly expensed, low-capital ones (MV pp12–13). '
-                 'It also targets the CLV / private-brand-adjusted valuation route directly (MV pp6, 11). It passes the shape and fit tests; the binding conditions are making Brand genuinely credible and restoring Frictionless CSV parity.'),
+                 'It also targets the CLV / private-brand-adjusted valuation route directly (MV pp6, 11). It passes the shape and fit tests; execution must sustain competitive Brand, reach Experience leadership and restore Frictionless CSV parity.'),
         criteria=[
             dict(rule='Two differentiators with parity on the other two',slide='MV p8',verdict='Pass',
                  evidence=f'Experience and Brand are the two differentiators; Low Price ({low_gap:+.2f} above floor) and Frictionless are held at reported CSV fair value. One-, three- and four-quadrant moves are documented as lower-value.'),
@@ -105,9 +105,9 @@ def build_stp(data):
             dict(rule='Do it efficiently—ROIC, not revenue alone',slide='MV p7; MV pp12–13',verdict='Conditional',
                  evidence='Experience, service and analytics are mostly expensed or partly capitalised, building current FCF and horizon T; brand quality raises COGS, so pair it with vendor management and avoid capital-heavy breadth/depth or store expansion without demand.'),
             dict(rule='Charge a fair amount for the value delivered',slide='MV p9 step 3',verdict='Conditional',
-                 evidence=f'Low Price is {low_gap:+.2f} above its {low_floor:.1f} CSV floor. Frictionless is {fri_gap:+.2f} below its {fri_floor:.1f} floor; leaving a reduce-pain quadrant under fair value risks losing the customers the strategy depends on.'),
+                  evidence=f'Low Price gap to its {low_floor:.1f} CSV floor is {low_gap:+.2f}. Frictionless gap to its {fri_floor:.1f} floor is {fri_gap:+.2f}; leaving a reduce-pain quadrant under fair value risks losing the customers the strategy depends on.'),
             dict(rule='Extend into a second credible quadrant',slide='MV p8; MV p9 step 4',verdict='Conditional',
-                 evidence=f'Experience is already credible (#{exp_rank}, {exp_own:.1f} vs {exp_leader} {exp_leader_value:.1f}). Brand is the execution gap: #{brand_rank} at {brand_own:.1f} vs leader {brand_leader} {brand_leader_value:.1f} ({brand_leader_value-brand_own:.1f} short)—above its {brand["active_floor"]:.1f} floor but not yet very competitive.'),
+                  evidence=f'Experience ranks #{exp_rank}: {exp_own:.1f} vs {exp_leader} {exp_leader_value:.1f}. Brand ranks #{brand_rank}: {brand_own:.1f} vs leader reference {brand_leader_value:.1f}, floor {brand["active_floor"]:.1f}. '+('Brand is currently joint/sole #1; protect that gain while repairing Experience and convenience.' if brand_rank==1 else 'Brand still needs to become more competitive while Experience targets leadership.')),
             dict(rule='Do not neglect non-target customers',slide='MV p9 step 5',verdict='Pass',
                  evidence='Defend existing Segments 2 and 6 and keep credible fair-value Low Price and Frictionless offers rather than abandoning non-target buyers.'),
             dict(rule='Convince the market you can repeat it',slide='MV p9 step 6; MV pp3–4',verdict='Conditional',
@@ -115,13 +115,13 @@ def build_stp(data):
             dict(rule='Target the CLV / brand-adjusted valuation route',slide='MV pp6, 11',verdict='Pass',
                  evidence='Brand, customer data and vendor relationships are treated as real competitive assets even though expensed; the simulation gives full credit through the CLV / private-brand-adjusted valuation method, which can be the greatest of the three values even with modest profit.'),
             dict(rule='Anticipate competitive moves',slide='Intro pp8–9',verdict='Risk',
-                 evidence=f'Segment 3’s rival {exp_leader} is the Experience leader ({exp_leader_value:.1f}) and near the top on Brand. Treat this as a contested fit core: budget for a real fight, test before scaling, and re-check rival investment each round.'),
+                  evidence=f'Segment 3’s rival {exp_leader} leads Experience ({exp_leader_value:.1f}) and has Brand {z.get("BRAND"):.1f} versus our {brand_own:.1f}. Treat this as a contested fit core and re-check rival investment each round.'),
         ],
         alternatives=[
             dict(pair='Brand + Experience',role='Chosen',segments='3 core; 5 conditional; 4 reserve; defend 2/6',
                  case='Best documented fit and efficiency: the only pairing that matches one segment’s top-two needs, uses mostly expensed levers, and directly supports the CLV / brand valuation route.'),
             dict(pair='Low Price + Experience',role='Rejected',segments='6; selective 4',
-                 case=f'Segment 6 fits Low Price / Experience, but markup cuts act immediately with no persistence (MV p12) and compress FCF, our Frictionless gap ({fri_gap:+.2f}) undermines the convenience a value claim needs, and BESTCO already owns Segment 6.'),
+                  case=f'Segment 6 fits Low Price / Experience, but markup cuts act immediately with no persistence (MV p12) and compress FCF, our Frictionless gap ({fri_gap:+.2f}) undermines the convenience a value claim needs, and BESTCO is a named rival—not proof of segment ownership.'),
             dict(pair='Frictionless + Experience',role='Not chosen now',segments='5',
                  case=f'Segment 5 has the strongest Experience pull (0.43) and higher aggregate CLV, but Frictionless is our weakest quadrant ({fri_own:.1f} vs {fri_leader} {fri_leader_value:.1f}) and online capacity is partly capitalised, adding debt and WACC pressure when built from a weak position (MV pp4, 12).'),
         ],
@@ -147,7 +147,7 @@ def build_stp(data):
                 required_evidence=['Segment contribution, acquisition cost, retention and satisfaction before committing spend.',
                                    'Brand-specific and experience-specific customer outcomes; segment × offering × channel purchases.',
                                    'Authorized tests showing an affordable path to Experience leadership and Frictionless CSV parity.',
-                                   'Confirmed Round 3 budget and inventory/capital/financing capacity; no new allocation is authorized here.'],
+                                   f'Confirm Round {data["planning_round"]} budget and inventory/capital/financing capacity; no new allocation is authorized here.'],
                 sources=[f'materials/round{current}/marketing/marketSize-round{current}.csv',
                          f'materials/round{current}/marketing/marketCLV-round{current}.csv',
                          f'materials/round{current}/marketing/preference-round{current}.csv',

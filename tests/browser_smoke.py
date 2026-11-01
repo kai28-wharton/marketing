@@ -1,4 +1,4 @@
-"""Latest export-2 / Round-3 workspace, API prediction and offline browser checks."""
+"""Round 4 workspace: Round 3 submission/marketing, explicit missing finance."""
 import base64
 import json
 import subprocess
@@ -16,9 +16,14 @@ import app
 
 
 def main():
+    from round_review import dataset
+    if dataset().get('history_analysis'):
+        from analysis_browser_smoke import main as analysis_main
+        return analysis_main()
     approved=Path('/private/var/folders/86/w9c93qb93hg8f5yyjtkgjmpw0000gn/T/opencode')
-    with tempfile.TemporaryDirectory(prefix='getchells-round3-',dir=approved) as directory:
-        profile=Path(directory);server=ThreadingHTTPServer(('127.0.0.1',0),app.Handler)
+    with tempfile.TemporaryDirectory(prefix='getchells-round4-',dir=approved) as directory:
+        profile=Path(directory)
+        server=ThreadingHTTPServer(('127.0.0.1',0),app.Handler)
         thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
         base=f'http://127.0.0.1:{server.server_port}'
         process=subprocess.Popen([CHROME,'--headless','--disable-gpu','--no-first-run','--no-default-browser-check',
@@ -30,111 +35,66 @@ def main():
                 if port_file.exists():break
                 time.sleep(.1)
             port=int(port_file.read_text().splitlines()[0])
-            with urlopen(f'http://127.0.0.1:{port}/json/list') as response:target=next(p for p in json.load(response) if p['type']=='page')
+            with urlopen(f'http://127.0.0.1:{port}/json/list') as response:
+                target=next(p for p in json.load(response) if p['type']=='page')
             client=CDP(target['webSocketDebuggerUrl']);client.call('Page.enable');client.call('Runtime.enable')
             client.call('Emulation.setDeviceMetricsOverride',{'width':1440,'height':1100,'deviceScaleFactor':1,'mobile':False})
             client.call('Page.navigate',{'url':base})
-            try:client.wait("document.querySelector('h1')?.textContent==='Executive overview'")
-            except AssertionError:raise AssertionError(client.errors or client.js('document.body.innerText'))
-            assert client.js('data.current_round')==2
-            assert client.js('data.planning_round')==3
-            assert client.js("document.querySelector('.round-pill').textContent.includes('ROUND 3 · R2 ACTUALS')")
-            assert client.js("['$561.28M','$10.77M','$255.27M'].every(s=>document.body.innerText.includes(s))")
-            assert client.js("!document.body.innerText.includes('A weaker brand')")
-            titles={'overview':'Executive overview','marketing':'Marketing Intelligence','segmentation':'Customer segmentation decision','financials':'Financial health','insights/brand':'Decision Insights','insights/finance':'Decision Insights','insights/segments':'Decision Insights','decisions':'Decision studio','recommendations':'Round 3 planning status'}
-            for route,title in titles.items():
+            client.wait("document.querySelector('h1')?.textContent==='Executive overview'")
+            assert client.js('[data.previous_round,data.current_round,data.planning_round]')==[2,3,4]
+            assert client.js("document.querySelector('.round-pill').textContent.includes('ROUND 4 · R3 ACTUALS')")
+            assert client.js("document.body.innerText.includes('$565.53M')")
+            assert client.js("document.body.innerText.includes('Round 3 financial exports are missing')")
+            assert client.js("!document.body.innerText.includes('$255.27M')")
+            assert client.js("document.body.innerText.includes('Round 4 budget: unconfirmed')")
+            routes={'overview':'Executive overview','marketing':'Marketing Intelligence','segmentation':'Customer segmentation decision','financials':'Financial health','insights/brand':'Decision Insights','insights/finance':'Decision Insights','insights/segments':'Decision Insights','decisions':'Decision studio','recommendations':'Round 4 decision making page'}
+            for route,title in routes.items():
                 client.js(f"location.hash='{route}'");client.wait(f"document.querySelector('h1')?.textContent==='{title}'")
                 if route.startswith('insights/'):
                     client.wait(f"!!document.querySelector('#insight-panel-{route.split('/')[1]}')")
-                assert client.js("![...document.querySelectorAll('svg *')].some(n=>[...n.attributes].some(a=>/NaN|Infinity/.test(a.value)))")
+                assert client.js("![...document.querySelectorAll('svg *')].some(n=>[...n.attributes].some(a=>/NaN|Infinity/.test(a.value)))"),route
                 client.call('Emulation.setDeviceMetricsOverride',{'width':390,'height':844,'deviceScaleFactor':1,'mobile':True})
                 assert client.js('document.documentElement.scrollWidth<=innerWidth'),route+' mobile overflow'
                 client.call('Emulation.setDeviceMetricsOverride',{'width':1440,'height':1100,'deviceScaleFactor':1,'mobile':False})
                 shot=client.call('Page.captureScreenshot',{'format':'png'})
-                (approved/('getchells-current-'+route.replace('/','-')+'.png')).write_bytes(base64.b64decode(shot['data']))
-            assert client.js("document.body.innerText.includes('factor allocation remain unconfirmed')")
-            assert client.js("!document.querySelector('#load-recommendation')")
-            client.js("location.hash='marketing'");client.wait("!!document.querySelector('#segment-select')")
-            assert client.js("document.querySelectorAll('[data-marketing-point]').length")==6
-            assert client.js("document.body.innerText.includes('marketCLV-round2.csv')")
-            assert client.js("document.querySelector('#segment-select').value")=='SEGMENT 3'
-            assert client.js("document.body.innerText.includes('FOCUS GROUP')")
-            assert client.js("document.body.innerText.includes('WIN SEGMENTS 3 + 5')")
-            assert client.js("document.body.innerText.includes('Segment focus group: win 3+5')")
-            assert client.js("document.body.innerText.includes('DEFEND · EXISTING VALUE & BREADTH EQUITY')")
-            assert client.js("document.body.innerText.includes('1.90')")
-            assert client.js("document.body.innerText.includes('Rank #1 is the goal')")
-            assert client.js("document.body.innerText.includes('which segment is actually lowest on CLV')")
-            assert client.js("document.body.innerText.includes('Strategy verdict: Experience + Brand is the best available strategy')")
-            assert client.js("document.body.innerText.includes('Why not the other two pairings?')")
-            assert client.js("document.body.innerText.includes('Playbook mapping (MV p9)')")
-            assert client.js("document.body.innerText.includes('Competitors already targeting each segment')")
-            assert client.js("document.body.innerText.includes('Fit test: Brand and shopping-experience intensity')")
-            assert client.js("document.body.innerText.includes('does not hold')")
-            assert client.js("document.querySelectorAll('#marketing-scale-fit [data-marketing-point], #marketing-scale-fit [data-segment]').length")>=18
-            client.js("document.querySelector('[data-marketing-point=\"SEGMENT 4\"]').dispatchEvent(new MouseEvent('click',{bubbles:true}))")
-            assert client.js("document.querySelector('#segment-select').value")=='SEGMENT 4'
-            client.js("location.hash='segmentation'");client.wait("!!document.querySelector('#segmentation-lens')")
-            assert client.js("document.querySelector('nav [data-page=segmentation]').getAttribute('aria-current')")=='page'
-            assert client.js("document.body.innerText.includes('Getchell’s financial capacity')")
-            assert client.js("document.body.innerText.includes('5 versus 6')")
-            assert client.js("document.body.innerText.includes('not a guaranteed win')")
-            assert client.js("document.querySelectorAll('[data-segmentation-member]').length")==4
-            client.js("document.querySelector('#segmentation-example').click()")
-            assert client.js("document.querySelector('#segmentation-one-liner').innerText.includes('Targeting segments 2, 4, 5 suggests a strong in-store offer')")
-            assert client.js("document.querySelector('#segmentation-portfolio').innerText.includes('$705.93M')")
-            client.js("document.querySelector('#segmentation-lens').value='clv';document.querySelector('#segmentation-lens').dispatchEvent(new Event('change',{bubbles:true}))")
-            assert client.js("document.querySelector('#segmentation-ranking tbody tr th').textContent")=='SEGMENT 2'
-            client.js("document.querySelector('#segmentation-lens').value='SHOPPING EXPERIENCE';document.querySelector('#segmentation-lens').dispatchEvent(new Event('change',{bubbles:true}))")
-            assert client.js("document.querySelector('#segmentation-ranking tbody tr th').textContent")=='SEGMENT 5'
-            client.js("document.querySelector('[data-segmentation-member=\"SEGMENT 6\"]').click()")
-            assert client.js("segmentationGroup.includes('SEGMENT 6')")
-            assert client.js("data.strategy.policy.secondary_segment")=='SEGMENT 5'
-            assert client.js('plan.online')==8_000_000
-            client.call('Page.reload');client.wait("document.querySelector('h1')?.textContent==='Customer segmentation decision'")
+                (approved/('getchells-round4-'+route.replace('/','-')+'.png')).write_bytes(base64.b64decode(shot['data']))
+            assert client.js("document.body.innerText.includes('Round 4 budget: unconfirmed')")
+            assert client.js("document.querySelector('nav [data-page=recommendations]').textContent.includes('Round 4')")
+            client.js("location.hash='financials'");client.wait("document.querySelector('h1')?.textContent==='Financial health'")
+            assert client.js("document.body.innerText.includes('Financial statements through Round 2')")
+            assert client.js("document.body.innerText.includes('not Round 3 results')")
             client.js("location.hash='decisions'");client.wait("!!document.querySelector('#impact-form')")
-            assert client.js("document.body.innerText.includes('rank #1 in Experience')")
             assert client.js("document.querySelectorAll('[data-factor]').length")==16
-            assert client.js('plan.experience')==15_000_000
-            assert client.js('plan.coverage')==236
-            assert client.js('result.net_income')==10_768_169
-            assert client.js('currentScenarioBudget') is None
-            assert client.js("document.querySelector('#current-budget-summary').innerText.includes('Unavailable')")
+            assert client.js("document.querySelector('#factor-high_markup').value")== '60'
+            assert client.js("document.querySelector('#factor-service').value")== '11350000'
+            assert client.js("document.querySelector('#apply-impact').disabled")
+            assert not client.js("!!document.querySelector('#optimizer-form')")
+            client.js("document.querySelector('#factor-service').value=12000000;document.querySelector('#factor-service').dispatchEvent(new Event('input',{bubbles:true}))")
+            assert client.js("document.querySelector('#apply-impact').disabled")
+            assert client.js("document.querySelector('#current-budget-summary').textContent.includes('75,281,166')")
             client.js("document.querySelector('#use-budget-arm').click()")
-            assert abs(client.js('currentScenarioBudget')-78_579_215.96)<.01
-            assert client.js("document.querySelector('#current-budget-summary').innerText.includes('$7,157,216')")
-            client.js("document.querySelector('#factor-online').value=8500000;document.querySelector('#factor-online').dispatchEvent(new Event('input',{bubbles:true}))")
-            assert client.js('impactStale')
-            assert client.js("document.querySelector('#current-budget-summary').innerText.includes('$71,922,000')")
-            client.js("document.querySelector('#impact-form').requestSubmit()")
-            client.wait('!impactBusy && !impactStale && result.decisions.online===8500000')
-            assert client.js('result.scores.FRICTIONLESS')>3.1
-            assert client.js('result.market_value') is None
-            assert client.js('data.team.decisions.online')==8_000_000
+            assert client.js('currentScenarioBudget')==79_174_036.2
             client.js("document.querySelector('#reset-plan').click()")
-            assert client.js('plan.online')==8_000_000
-            assert client.js('result.net_income')==10_768_169
-            client.js("location.hash='insights/segments'");client.wait("!!document.querySelector('#insight-panel-segments')")
-            client.call('Page.reload');client.wait("!!document.querySelector('#insight-panel-segments')")
-            with urlopen(base+'/marketing-report') as response:html=response.read()
-            report=profile/'marketing-current.html';report.write_bytes(html)
-            client.call('Network.enable');client.call('Network.emulateNetworkConditions',{'offline':True,'latency':0,'downloadThroughput':0,'uploadThroughput':0})
-            client.call('Page.navigate',{'url':report.as_uri()});client.wait("document.querySelector('h1')?.textContent==='Marketing Intelligence'")
-            assert client.js('data.current_round')==2
-            assert client.js("document.querySelector('#report-generated').textContent.includes('export 2')")
-            assert client.js("document.body.innerText.includes('$561.28M')")
-            assert client.js("document.body.innerText.includes('Strategy verdict: Experience + Brand is the best available strategy')")
-            assert client.js("document.body.innerText.includes('Segment focus group: win 3+5')")
-            assert not client.js("!!document.querySelector('nav,script[src],link[rel=stylesheet],[data-factor]')")
-            client.js("document.querySelector('#segment-select').value='SEGMENT 6';document.querySelector('#segment-select').dispatchEvent(new Event('change',{bubbles:true}))")
-            assert client.js("document.querySelector('.segment-brief').innerText.includes('$220.34M')")
-            client.js("location.hash='segmentation'");client.wait("document.querySelector('h1')?.textContent==='Customer segmentation decision'")
-            client.js("document.querySelector('#segmentation-example').click()")
-            assert client.js("document.querySelector('#segmentation-one-liner').innerText.includes('Targeting segments 2, 4, 5')")
-            client.call('Emulation.setDeviceMetricsOverride',{'width':390,'height':844,'deviceScaleFactor':1,'mobile':True})
-            assert client.js('document.documentElement.scrollWidth<=innerWidth')
+            assert client.js("document.querySelector('#factor-service').value")== '11350000'
+            assert client.js("document.querySelector('#apply-impact').disabled")
+            client.js("location.hash='segmentation'");client.wait("!!document.querySelector('#segmentation-lens')")
+            assert client.js("document.body.innerText.includes('Raw Round 3 CSV values')")
+            assert client.js("document.body.innerText.includes('R2 CASH')")
+            assert not client.js("document.body.innerText.includes('ZEPHARA is a stronger rival on both')")
+            client.js("document.querySelector('#segmentation-lens').value='clv';document.querySelector('#segmentation-lens').dispatchEvent(new Event('change',{bubbles:true}))")
+            assert client.js("document.querySelector('#segmentation-ranking').textContent.includes('Existing aggregate CLV')")
+            for endpoint,page,title in [('/marketing-report','marketing','Marketing Intelligence'),('/customer-segmentation-report','segmentation','Customer segmentation decision')]:
+                path=profile/(page+'.html')
+                with urlopen(base+endpoint) as response:path.write_bytes(response.read())
+                client.call('Page.navigate',{'url':path.as_uri()})
+                client.wait(f"document.querySelector('h1')?.textContent==='{title}'")
+                assert client.js('data.planning_round')==4
+                assert client.js('data.availability.financial_round')==2
+                assert not client.js("'decisions' in data.team || 'draft' in data.strategy")
+                client.js("location.hash='segmentation'");client.wait("!!document.querySelector('#segmentation-lens')")
+                assert client.js("document.body.innerText.includes('Round 3 financial exports are missing')")
             assert not client.errors,client.errors
-            print('PASS: all current pages, correct timeline, R2 actuals and submitted baseline, CSV fair value, current segment CLV, mobile/deep links, unknown R3 budget, conditional prediction/reset and offline report.')
+            print('PASS: all Round 4 pages, actual Round 3 decisions/marketing, missing-finance safeguards, manual budget editing/reset, mobile layouts and offline reports.')
         finally:
             if client:client.sock.close()
             process.terminate();process.wait(timeout=15)

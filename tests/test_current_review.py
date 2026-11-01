@@ -12,7 +12,7 @@ from marketing_report import build_current_report
 
 class CurrentReviewTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):cls.data=dataset()
+    def setUpClass(cls):cls.data=dataset(2)
 
     def test_round_context_is_explicit_and_latest(self):
         d=self.data
@@ -53,7 +53,7 @@ class CurrentReviewTests(unittest.TestCase):
         self.assertEqual(six['preferences']['DEPTH'],.04)
         self.assertEqual(max(r['round'] for r in six['history']),2)
         self.assertTrue(all('/round2/' in t['file'] for t in m['raw_tables']))
-        self.assertEqual(len(m['raw_tables']),14)
+        self.assertEqual(len(m['raw_tables']),15)
 
     def test_brand_experience_stp_uses_size_clv_and_raw_preferences(self):
         s=self.data['strategy'];p=s['policy'];by_id={r['id']:r for r in s['segments']}
@@ -102,13 +102,13 @@ class CurrentReviewTests(unittest.TestCase):
 
     def test_no_recycled_budget_recommendation_or_fake_backtest(self):
         s=self.data['strategy']
-        self.assertIsNone(s['funding']['approved_budget'])
-        self.assertIsNone(s['funding']['headroom'])
+        self.assertEqual(s['funding']['approved_budget'],74_631_166)
+        self.assertEqual(s['funding']['headroom'],3_209_166)
         self.assertAlmostEqual(s['funding']['revenue_arm'],78_579_215.96)
         self.assertEqual(s['recommendations'],[])
         self.assertEqual(s['draft'],self.data['team']['decisions'])
         self.assertEqual(self.data['audit']['rows'],[])
-        self.assertTrue(all(f['industry_round']==1 for f in self.data['factors']))
+        self.assertTrue(all(f['industry_round']==2 for f in self.data['factors']))
 
     def test_customer_segmentation_decision_preserves_source_measures(self):
         d=self.data['segment_decision'];by_id={s['id']:s for s in d['rows']}
@@ -146,6 +146,21 @@ class CurrentReviewTests(unittest.TestCase):
         data=copy.deepcopy(self.data);before=copy.deepcopy(data)
         build_segment_decision(data)
         self.assertEqual(data,before)
+
+    def test_segmentation_report_opens_its_own_page_without_editable_inputs(self):
+        from html import unescape
+        html=build_current_report(self.data,page='segmentation')
+        self.assertIn('"report_page": "segmentation"',html)
+        self.assertIn('Customer segmentation decision</title>',html)
+        self.assertIn('function segmentationHurdle(',html)
+        self.assertIn('function serializeSegmentationReport(',html)
+        self.assertIn('Download interactive HTML',unescape(html))
+        payload=json.loads(html.split('<script type="application/json" id="review-data">')[1].split('</script>')[0])
+        self.assertNotIn('decisions',payload['team'])
+        self.assertNotIn('draft',payload['strategy'])
+        self.assertNotIn('economic_defaults',payload)
+        self.assertNotIn('segmentation_debate',self.data)
+        with self.assertRaises(ValueError):build_current_report(self.data,page='decisions')
 
     def test_model_reanchors_to_latest_and_retains_rounding(self):
         before=copy.deepcopy(self.data)
